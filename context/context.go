@@ -2,6 +2,7 @@ package context
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Solar-2020/GoUtils/context/session"
 	"github.com/valyala/fasthttp"
 )
@@ -10,7 +11,7 @@ import (
 // Data for request
 type Context struct {
 	*fasthttp.RequestCtx
-	*session.Session
+	Session *session.Session
 }
 
 type SpecialRequest struct {
@@ -42,8 +43,16 @@ func (c *Context) Inflate(httpCtx *fasthttp.RequestCtx, req *SpecialRequest) err
 }
 
 func (c *Context) InflateOpen(httpCtx *fasthttp.RequestCtx, req *SpecialRequest) error {
-	session, err := session.NewBasicSession(httpCtx, req.RequestWithAuth.BasicRequest)
-	c.Session.BasicSession = *session
+	s, err := session.NewBasicSession(httpCtx, req.RequestWithAuth.BasicRequest)
+	if err != nil {
+		return err
+	}
+	if s == nil {
+		return fmt.Errorf("nil session")
+	}
+	c.Session = &session.Session{
+		BasicSession: *s,
+	}
 	return err
 }
 

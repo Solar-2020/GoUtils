@@ -9,5 +9,6 @@ type BasicRequest struct {
 type BasicSession struct {}
 
 func NewBasicSession(httpContext *fasthttp.RequestCtx, request BasicRequest) (*BasicSession, error) {
-	return &BasicSession{}, nil
+	s := BasicSession{}
+	return &s, nil
 }
