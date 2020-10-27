@@ -5,10 +5,21 @@ import (
 	"fmt"
 	"github.com/Solar-2020/GoUtils/context/session"
 	"github.com/valyala/fasthttp"
+	"net/url"
+	"path"
 	"testing"
 )
 
 func TestNewContext(t *testing.T) {
+	url, err := url.Parse("http://localhost:3000/auth/")
+	if err != nil {
+		return
+	}
+	url.Path = path.Join(url.Path, "/authorization/signup")
+	res := url.String()
+	fmt.Println(res)
+
+
 	req := SpecialRequest{
 		RequestWithAuth: session.RequestWithAuth{
 			Uid: 123,

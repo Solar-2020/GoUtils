@@ -10,7 +10,20 @@ import (
 const (
 	UidHeaderKey = "X-UID"
 	EmailHeaderKey = "X-Login"
+	cookieTokenKey = "SessionToken"
 )
+
+type AuthClient interface {
+	ByCookie(cookie string, headers map[string]string) (int, error)
+}
+
+var (
+	authClient AuthClient
+)
+
+func RegisterAuthService(concreteAuthClient AuthClient) {
+	authClient = concreteAuthClient
+}
 
 type Session struct {
 	BasicSession
@@ -37,8 +50,37 @@ func NewSession(httpCtx *fasthttp.RequestCtx, request RequestWithAuth) (*Session
 }
 
 func (s *Session) Authorise(ctx *fasthttp.RequestCtx, request RequestWithAuth) error{
-	return s.mockAuthorise(ctx, request)
-	// Go to auth
+	return s.serviceAuthorise(ctx, request)
+	//return s.mockAuthorise(ctx, request)
+}
+
+func (s *Session) serviceAuthorise(ctx *fasthttp.RequestCtx, request RequestWithAuth) error{
+	err := s.mockAuthorise(ctx, request)
+	sessionCookieSrc := ctx.Request.Header.Cookie(cookieTokenKey)
+	if sessionCookieSrc == nil {
+		if s.Uid == 0  {
+			return fmt.Errorf("token required")
+		}
+		log.Println(ctx, "auth with header")
+		return nil
+	}
+	sessionCookie := string(sessionCookieSrc)
+	fmt.Println(sessionCookie)
+	if authClient == nil {
+		if s.Uid == 0  {
+			return fmt.Errorf("nil auth service")
+		}
+		log.Println(ctx, "auth service needed")
+		return nil
+	}
+	uid, err := authClient.ByCookie(sessionCookie, nil)
+	if err != nil {
+		return err
+	}
+	if uid != 0 {
+		s.Uid = uid
+	}
+	return nil
 }
 
 func (s *Session) mockAuthorise(ctx *fasthttp.RequestCtx, request RequestWithAuth) error {

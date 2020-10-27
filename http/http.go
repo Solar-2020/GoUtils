@@ -7,9 +7,9 @@ import (
 	"github.com/valyala/fasthttp"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
-	"strings"
 )
 
 type Message interface{}
@@ -99,15 +99,15 @@ func (e *ServiceEndpoint) sendWithBody(request Message) (response *http.Response
 
 func (e *ServiceEndpoint) sendGet(message Message) (response *http.Response, err error) {
 	response, err = http.Get(e.getFullAddress())
+	//url, _ := url.Parse("d")
+	//url.
 	return
 }
 
 func (e *ServiceEndpoint) getFullAddress(params ...string) string {
-	parts := strings.SplitN(e.Service.Address(), "://", 2)
-	params_ := append(make([]string, 0), parts[1], e.Endpoint)
-	params_ = append(params_, params...)
-	return fmt.Sprintf("%s://%s", parts[0], path.Join(params_...))
-	//return fmt.Sprintf("%s%s", e.Service.Address(), e.Endpoint)
+	url, _ := url.Parse(e.Service.Address())
+	url.Path = path.Join(url.Path, e.Endpoint, path.Join(params...))
+	return url.String()
 }
 
 func DecodeDefault(ctx *fasthttp.RequestCtx) (request interface{}, err error) {
