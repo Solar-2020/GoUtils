@@ -30,6 +30,10 @@ func RegisterAuthService(concreteAuthClient AuthClient) {
 	authClient = concreteAuthClient
 }
 
+func RegisterAccountService(concreteClient AccountServiceClient) {
+	asClient = concreteClient
+}
+
 type Session struct {
 	BasicSession
 	Uid int
@@ -81,7 +85,9 @@ func NewMockSession(httpCtx *fasthttp.RequestCtx, request RequestWithAuth) (*Ses
 	if err != nil {
 		return nil, err
 	}
-	s.Login, err = asClient.UidToEmail(s.Uid)
+	if asClient != nil {
+		s.Login, err = asClient.UidToEmail(s.Uid)
+	}
 	return &s, err
 }
 
