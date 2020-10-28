@@ -36,6 +36,38 @@ func NewContext(httpCtx *fasthttp.RequestCtx) (ctx Context, err error) {
 	return ctx, err
 }
 
+func NewEmptyContext(httpCtx *fasthttp.RequestCtx) (ctx Context, err error) {
+	ctx = Context{
+		RequestCtx: httpCtx,
+		Session:    nil,
+	}
+	s, err := session.NewEmptySession(httpCtx)
+	ctx.Session = s
+	return
+}
+
+func NewMockContext(httpCtx *fasthttp.RequestCtx) (ctx Context, err error) {
+	req := SpecialRequest{}
+	body := httpCtx.Request.Body()
+	if body != nil && len(body) > 0{
+		err = json.Unmarshal(body, &req)
+		if err != nil {
+			return Context{}, err
+		}
+	}
+	ctx = Context{
+		RequestCtx: httpCtx,
+		Session:    nil,
+	}
+	s, err := session.NewMockSession(httpCtx, req.RequestWithAuth)
+	if err != nil {
+		return
+	}
+	s.God = true
+	ctx.Session = s
+	return ctx, err
+}
+
 func (c *Context) Inflate(httpCtx *fasthttp.RequestCtx, req *SpecialRequest) error {
 	session, err := session.NewSession(httpCtx, req.RequestWithAuth)
 	c.Session = session

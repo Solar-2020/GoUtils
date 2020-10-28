@@ -22,6 +22,10 @@ type MessageEncodeUrl interface {
 	Encode() (urlQuery string, err error)
 }
 
+type MessageQueryParams interface {
+	QueryParams() (values url.Values, err error)
+}
+
 type MessageDecodeBody interface {
 	Decode([]byte) (err error)
 }
@@ -31,11 +35,17 @@ type ServiceEndpoint struct {
 	Endpoint string
 	Method string
 	ContentType string
+	url *url.URL
 }
 
 func (e *ServiceEndpoint) Send(message Message, response Message) (err error) {
 	var httpResponse *http.Response
 
+	e.url, _ = url.Parse(e.Service.Address())
+	if messageQ, ok := message.(MessageQueryParams); ok {
+		params, _ := messageQ.QueryParams()
+		e.url.RawQuery = params.Encode()
+	}
 	switch e.Method {
 	case "GET":
 		httpResponse, err = e.sendGet(message)
@@ -107,6 +117,7 @@ func (e *ServiceEndpoint) sendGet(message Message) (response *http.Response, err
 func (e *ServiceEndpoint) getFullAddress(params ...string) string {
 	url, _ := url.Parse(e.Service.Address())
 	url.Path = path.Join(url.Path, e.Endpoint, path.Join(params...))
+	url.RawQuery = e.url.RawQuery
 	return url.String()
 }
 

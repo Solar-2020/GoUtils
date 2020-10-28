@@ -29,6 +29,7 @@ type Session struct {
 	BasicSession
 	Uid int
 	Login  string
+	God bool
 }
 
 type RequestWithAuth struct {
@@ -46,6 +47,28 @@ func NewSession(httpCtx *fasthttp.RequestCtx, request RequestWithAuth) (*Session
 
 	err = s.Authorise(httpCtx, request)
 
+	return &s, err
+}
+
+func NewEmptySession(httpCtx *fasthttp.RequestCtx) (*Session, error) {
+	s := Session{}
+	basicS, err := NewBasicSession(httpCtx, BasicRequest{})
+	if err != nil {
+		return nil, err
+	}
+	s.BasicSession = *basicS
+
+	return &s, err
+}
+
+func NewMockSession(httpCtx *fasthttp.RequestCtx, request RequestWithAuth) (*Session, error) {
+	s := Session{}
+	basicS, err := NewBasicSession(httpCtx, BasicRequest{})
+	if err != nil {
+		return nil, err
+	}
+	s.BasicSession = *basicS
+	err = s.mockAuthorise(httpCtx, request)
 	return &s, err
 }
 
@@ -93,15 +116,22 @@ func (s *Session) mockAuthorise(ctx *fasthttp.RequestCtx, request RequestWithAut
 		}
 	}
 
+	if s.Uid == 0 {
+		if queryUid, err := s.uidFromQueryParams(ctx); err == nil {
+			log.Println(ctx, "Uid переопределен из queryArgs: ", queryUid)
+			s.Uid = queryUid
+		}
+	}
+
 	uidToEmail := func(uid int) string {
 		return fmt.Sprintf("email_uid_%d@solar.ru", uid)
 	}
 
 	s.Login = uidToEmail(s.Uid)
-	if headerLogin, err := s.emailFromHead(ctx); err == nil {
-		log.Println(ctx, "Email переопределен из заголовка: ", headerLogin)
-		s.Login = headerLogin
-	}
+	//if headerLogin, err := s.emailFromHead(ctx); err == nil {
+	//	log.Println(ctx, "Email переопределен из заголовка: ", headerLogin)
+	//	s.Login = headerLogin
+	//}
 
 	return nil
 }
@@ -121,6 +151,15 @@ func (s *Session) uidFromHeader(ctx *fasthttp.RequestCtx) (int, error) {
 	}
 	header := string(b)
 	return strconv.Atoi(header)
+}
+
+func (s *Session) uidFromQueryParams(ctx *fasthttp.RequestCtx) (int, error) {
+	b := ctx.QueryArgs().Peek("uid")
+	if b == nil {
+		return 0, fmt.Errorf("missed")
+	}
+	uid := string(b)
+	return strconv.Atoi(uid)
 }
 
 const (
