@@ -17,8 +17,13 @@ type AuthClient interface {
 	ByCookie(cookie string, headers map[string]string) (int, error)
 }
 
+type AccountServiceClient interface {
+	UidToEmail(userID int) (string, error)
+}
+
 var (
 	authClient AuthClient
+	asClient AccountServiceClient
 )
 
 func RegisterAuthService(concreteAuthClient AuthClient) {
@@ -46,6 +51,10 @@ func NewSession(httpCtx *fasthttp.RequestCtx, request RequestWithAuth) (*Session
 	s.BasicSession = *basicS
 
 	err = s.Authorise(httpCtx, request)
+	if err != nil {
+		return nil, err
+	}
+	s.Login, err = asClient.UidToEmail(s.Uid)
 
 	return &s, err
 }
@@ -69,6 +78,10 @@ func NewMockSession(httpCtx *fasthttp.RequestCtx, request RequestWithAuth) (*Ses
 	}
 	s.BasicSession = *basicS
 	err = s.mockAuthorise(httpCtx, request)
+	if err != nil {
+		return nil, err
+	}
+	s.Login, err = asClient.UidToEmail(s.Uid)
 	return &s, err
 }
 
@@ -123,11 +136,11 @@ func (s *Session) mockAuthorise(ctx *fasthttp.RequestCtx, request RequestWithAut
 		}
 	}
 
-	uidToEmail := func(uid int) string {
-		return fmt.Sprintf("email_uid_%d@solar.ru", uid)
-	}
+	//uidToEmail := func(uid int) string {
+	//	return fmt.Sprintf("email_uid_%d@solar.ru", uid)
+	//}
 
-	s.Login = uidToEmail(s.Uid)
+	//s.Login = uidToEmail(s.Uid)
 	//if headerLogin, err := s.emailFromHead(ctx); err == nil {
 	//	log.Println(ctx, "Email переопределен из заголовка: ", headerLogin)
 	//	s.Login = headerLogin

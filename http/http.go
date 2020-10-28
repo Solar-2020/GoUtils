@@ -108,7 +108,14 @@ func (e *ServiceEndpoint) sendWithBody(request Message) (response *http.Response
 }
 
 func (e *ServiceEndpoint) sendGet(message Message) (response *http.Response, err error) {
-	response, err = http.Get(e.getFullAddress())
+	var queryParams string
+	if urlEncode, ok := message.(MessageEncodeUrl); ok {
+		queryParams, err = urlEncode.Encode()
+		if err != nil {
+			return
+		}
+	}
+	response, err = http.Get(e.getFullAddress(queryParams))
 	//url, _ := url.Parse("d")
 	//url.
 	return
