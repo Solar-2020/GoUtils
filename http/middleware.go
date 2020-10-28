@@ -48,7 +48,9 @@ func (m middleware) Log(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		logger := log.NewLog()
 		log.Set(ctx, &logger)
 		logger.Println(ctx, "Start new request: ", ctx.Request.URI())
-		logger.Println(ctx, ctx.Request.String())
+		if len(ctx.Request.String()) < 1024 {
+			logger.Println(ctx, ctx.Request.String())
+		}
 
 		defer func(begin time.Time) {
 			logger.Printf(

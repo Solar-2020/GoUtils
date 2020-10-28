@@ -21,7 +21,7 @@ type SpecialRequest struct {
 func NewContext(httpCtx *fasthttp.RequestCtx) (ctx Context, err error) {
 	req := SpecialRequest{}
 	body := httpCtx.Request.Body()
-	if body != nil && len(body) > 0{
+	if body != nil && len(body) > 0 && len(body) < 10*1024{
 		err = json.Unmarshal(body, &req)
 		if err != nil {
 			return Context{}, err
@@ -49,7 +49,7 @@ func NewEmptyContext(httpCtx *fasthttp.RequestCtx) (ctx Context, err error) {
 func NewMockContext(httpCtx *fasthttp.RequestCtx) (ctx Context, err error) {
 	req := SpecialRequest{}
 	body := httpCtx.Request.Body()
-	if body != nil && len(body) > 0{
+	if body != nil && len(body) > 0 && len(body) < 10*1024 {
 		err = json.Unmarshal(body, &req)
 		if err != nil {
 			return Context{}, err
