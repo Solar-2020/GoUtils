@@ -58,7 +58,7 @@ func NewSession(httpCtx *fasthttp.RequestCtx, request RequestWithAuth) (*Session
 	if err != nil {
 		return nil, err
 	}
-	s.Login, err = asClient.UidToEmail(s.Uid)
+	s.Login, _ = asClient.UidToEmail(s.Uid)
 
 	return &s, err
 }
@@ -85,8 +85,8 @@ func NewMockSession(httpCtx *fasthttp.RequestCtx, request RequestWithAuth) (*Ses
 	if err != nil {
 		return nil, err
 	}
-	if asClient != nil {
-		s.Login, err = asClient.UidToEmail(s.Uid)
+	if asClient != nil && s.Uid !=0 {
+		s.Login, _ = asClient.UidToEmail(s.Uid)
 	}
 	return &s, err
 }
