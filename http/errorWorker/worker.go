@@ -7,6 +7,7 @@ import (
 
 type ErrorWorker interface {
 	ServeJSONError(ctx *fasthttp.RequestCtx, serveError error)
+	ServeFatalError(ctx *fasthttp.RequestCtx)
 	NewError(httpCode int, responseError error, fullError error) (err error)
 }
 
@@ -42,7 +43,7 @@ func (ew *errorWorker) ServeJSONError(ctx *fasthttp.RequestCtx, serveError error
 	return
 }
 
-func (e *errorWorker) serveJSONError(ctx *fasthttp.RequestCtx, statusCode int, err interface{}) {
+func (ew *errorWorker) serveJSONError(ctx *fasthttp.RequestCtx, statusCode int, err interface{}) {
 	ctx.Response.Header.SetContentType("application/json")
 	ctx.Response.Header.SetStatusCode(statusCode)
 
@@ -50,14 +51,18 @@ func (e *errorWorker) serveJSONError(ctx *fasthttp.RequestCtx, statusCode int, e
 
 	body, marshalErr := json.Marshal(errorStruct)
 	if marshalErr != nil {
-		e.sendInternalError(ctx)
+		ew.sendInternalError(ctx)
 		return
 	}
 
 	ctx.SetBody(body)
 }
 
-func (e *errorWorker) sendInternalError(ctx *fasthttp.RequestCtx) {
+func (ew *errorWorker) sendInternalError(ctx *fasthttp.RequestCtx) {
 	ctx.Response.Header.SetStatusCode(fasthttp.StatusInternalServerError)
 	return
+}
+
+func (ew *errorWorker) ServeFatalError(ctx *fasthttp.RequestCtx) {
+	ew.sendInternalError(ctx)
 }
