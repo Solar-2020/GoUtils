@@ -6,39 +6,58 @@ import (
 )
 
 type ErrorWorker interface {
-	ServeJSONError(ctx *fasthttp.RequestCtx, serveError error) (err error)
-	ServeFatalError(ctx *fasthttp.RequestCtx)
+	ServeJSONError(ctx *fasthttp.RequestCtx, serveError error)
+	NewError(httpCode int, responseError error, fullError error) (err error)
 }
 
 type errorWorker struct {
+	defaultCode int
 }
 
 func NewErrorWorker() ErrorWorker {
-	return &errorWorker{}
+	return &errorWorker{defaultCode: fasthttp.StatusBadRequest}
 }
 
 type ServeError struct {
-	Error string `json:"error"`
+	Error interface{} `json:"error"`
 }
 
-func (ew *errorWorker) ServeJSONError(ctx *fasthttp.RequestCtx, serveError error) (err error) {
-	sendError := ServeError{
-		Error: serveError.Error(),
+func (ew *errorWorker) NewError(httpCode int, responseError error, fullError error) (err error) {
+	return ResponseError{
+		httpCode:      httpCode,
+		responseError: responseError,
+		fullError:     fullError,
 	}
+}
 
-	body, err := json.Marshal(sendError)
-	if err != nil {
+func (ew *errorWorker) ServeJSONError(ctx *fasthttp.RequestCtx, serveError error) {
+	if responseError, ok := serveError.(*ResponseError); ok {
+		ctx.SetUserValue("error", responseError.fullError)
+		ew.serveJSONError(ctx, responseError.httpCode, responseError.responseError.Error())
 		return
 	}
-
-	ctx.Response.Header.SetContentType("application/json")
-	ctx.Response.Header.SetStatusCode(fasthttp.StatusBadRequest)
-	ctx.SetBody(body)
+	ctx.SetUserValue("error", serveError)
+	ew.serveJSONError(ctx, ew.defaultCode, serveError.Error())
 
 	return
 }
 
-func (ew *errorWorker) ServeFatalError(ctx *fasthttp.RequestCtx) {
+func (e *errorWorker) serveJSONError(ctx *fasthttp.RequestCtx, statusCode int, err interface{}) {
+	ctx.Response.Header.SetContentType("application/json")
+	ctx.Response.Header.SetStatusCode(statusCode)
+
+	errorStruct := ServeError{Error: err}
+
+	body, marshalErr := json.Marshal(errorStruct)
+	if marshalErr != nil {
+		e.sendInternalError(ctx)
+		return
+	}
+
+	ctx.SetBody(body)
+}
+
+func (e *errorWorker) sendInternalError(ctx *fasthttp.RequestCtx) {
 	ctx.Response.Header.SetStatusCode(fasthttp.StatusInternalServerError)
 	return
 }
