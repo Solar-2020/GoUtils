@@ -9,3 +9,11 @@ type ResponseError struct {
 func (re ResponseError) Error() string {
 	return re.responseError.Error()
 }
+
+func (re ResponseError) ResponseError() error {
+	return re.responseError
+}
+
+func (re ResponseError) FullError() error {
+	return re.fullError
+}
