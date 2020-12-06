@@ -7,6 +7,9 @@ type ResponseError struct {
 }
 
 func (re ResponseError) Error() string {
+	if re.responseError == nil {
+		return ""
+	}
 	return re.responseError.Error()
 }
 
